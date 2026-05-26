@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI答题插件 - 配置管理</title>
+    <link rel="stylesheet" href="../css/options.css">
+</head>
+
+<body>
+    <div class="container">
+        <!-- 头部 -->
+        <header class="header">
+            <div class="header-content">
+                <div class="logo" id="easterEggTrigger" role="button" tabindex="0" aria-label="AI答题插件">
+                    <div class="logo-icon">🤖</div>
+                    <h1 class="header-title">AI答题插件</h1>
+                </div>
+                <div class="header-subtitle">配置管理中心</div>
+            </div>
+        </header>
+
+        <!-- 主要内容 -->
+        <main class="main-content">
+            <!-- 控制按钮区域 -->
+            <div class="control-panel">
+                <div class="control-left">
+                    <button id="addButton" class="btn btn-primary">
+                        <svg class="btn-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M12 5V19M5 12H19" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                        添加配置
+                    </button>
+                </div>
+                <div class="control-right">
+                    <button id="exportButton" class="btn btn-secondary">
+                        <svg class="btn-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M15 21H9C7.89543 21 7 20.1046 7 19V5C7 3.89543 7.89543 3 9 3H15C16.1046 3 17 3.89543 17 5V19C17 20.1046 16.1046 21 15 21Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            <path d="M12 15V3M12 3L8 7M12 3L16 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                        导出配置
+                    </button>
+                    <button id="importButton" class="btn btn-secondary">
+                        <svg class="btn-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M12 3V15M12 15L8 11M12 15L16 11" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            <path d="M15 21H9C7.89543 21 7 20.1046 7 19V5C7 3.89543 7.89543 3 9 3H15C16.1046 3 17 3.89543 17 5V19C17 20.1046 16.1046 21 15 21Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                        导入配置
+                    </button>
+                    <button id="restoreBackupButton" class="btn btn-outline" type="button">
+                        恢复备份
+                    </button>
+                </div>
+            </div>
+
+            <section class="config-summary-grid" aria-label="配置摘要">
+                <div class="config-summary-card">
+                    <span class="summary-label">全部配置</span>
+                    <strong id="summaryTotalConfigs">0</strong>
+                </div>
+                <div class="config-summary-card">
+                    <span class="summary-label">已启用</span>
+                    <strong id="summaryEnabledConfigs">0</strong>
+                </div>
+                <div class="config-summary-card">
+                    <span class="summary-label">配置类型</span>
+                    <strong id="summaryConfigTypes">0</strong>
+                </div>
+                <div class="config-summary-card summary-card-wide">
+                    <span class="summary-label">当前视图</span>
+                    <strong id="summaryViewMode">详细模式</strong>
+                </div>
+            </section>
+
+            <!-- 配置列表区域 -->
+            <div class="config-section">
+                <div class="section-header">
+                    <h2>配置列表</h2>
+                    <div id="configCount" class="config-count">0 个配置</div>
+                </div>
+
+                <div class="config-toolbar">
+                    <div class="config-search">
+                        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                            <path d="M21 21L16.65 16.65M19 11C19 15.4183 15.4183 19 11 19C6.58172 19 3 15.4183 3 11C3 6.58172 6.58172 3 11 3C15.4183 3 19 6.58172 19 11Z" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                        </svg>
+                        <input id="configSearchInput" type="search" placeholder="搜索名称、类型、模型、URL">
+                    </div>
+                    <select id="configTypeFilter" class="config-type-filter" aria-label="按类型筛选">
+                        <option value="">全部类型</option>
+                    </select>
+                    <button id="toggleConfigView" class="btn btn-outline config-view-toggle" type="button">紧凑模式</button>
+                    <button id="clearConfigFilter" class="btn btn-outline config-filter-clear" type="button">清空</button>
+                </div>
+                
+                <!-- 配置列表 -->
+                <div id="configList" class="config-cards">
+                    <!-- 配置卡片将通过JavaScript动态加载 -->
+                </div>
+
+                <!-- 空状态显示 -->
+                <div id="emptyState" class="empty-state">
+                    <div class="empty-icon">📋</div>
+                    <h3>暂无配置项</h3>
+                    <p>点击上方的「添加配置」按钮创建您的第一个AI配置</p>
+                    <div class="empty-actions">
+                        <button class="btn btn-secondary quick-add-config" type="button" data-type="OpenaiAPI">添加 OpenAI</button>
+                        <button class="btn btn-secondary quick-add-config" type="button" data-type="Gemini">添加 Gemini</button>
+                        <button class="btn btn-secondary quick-add-config" type="button" data-type="KaoShiBao">添加考试宝</button>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- 编辑模态框 -->
+    <div class="modal-overlay" id="editModalOverlay">
+        <div class="modal" id="editModal">
+            <div class="modal-header">
+                <h2 id="modalTitle">添加新配置</h2>
+                <button id="closeModalBtn" class="close-btn">
+                    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="configForm">
+                    <div class="form-group">
+                        <label for="editName" class="form-label">名称</label>
+                        <input type="text" id="editName" class="form-input" placeholder="请输入配置名称" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="editUrl" class="form-label">URL</label>
+                        <input type="url" id="editUrl" class="form-input" placeholder="请输入API地址" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="editKey" class="form-label">API Key</label>
+                        <div class="secret-input-group">
+                            <input type="password" id="editKey" class="form-input" placeholder="请输入API密钥" autocomplete="off">
+                            <button id="toggleKeyVisibility" class="secret-toggle-btn" type="button">显示</button>
+                        </div>
+                    </div>
+                    <div class="form-group" id="editModelGroup">
+                        <label for="editModel" class="form-label" id="editModelLabel">模型</label>
+                        <input type="text" id="editModel" class="form-input" placeholder="请输入模型名称">
+                    </div>
+                    <div class="form-group">
+                        <label for="editOther" class="form-label" id="editOtherLabel">预留参数</label>
+                        <input type="text" id="editOther" class="form-input" placeholder="预留参数,如ragflow的ID值等，可以放这里">
+                        <div class="form-help-text" id="editOtherHelpText" style="display: none;"></div>
+                    </div>
+                    <div class="form-group">
+                        <label for="editType" class="form-label">处理类型</label>
+                        <select id="editType" class="form-select" required>
+                            <option value="OpenaiAPI">OpenAI API</option>
+                            <option value="OpenAIResponses">OpenAI Responses</option>
+                            <option value="Ollama">Ollama</option>
+                            <option value="Aliyun">阿里云千问</option>
+                            <option value="Dify">Dify</option>
+                            <option value="CloudFlare">Cloudflare</option>
+                            <option value="AnythingLLM">AnythingLLM</option>
+                            <option value="Ragflow">ragflow</option>
+                            <option value="Gemini">Gemini</option>
+                            <option value="KaoShiBao">考试宝</option>
+                        </select>
+                    </div>
+                    <div class="form-group thinking-option-group" id="thinkingOptionGroup">
+                        <label for="editThinkingMode" class="form-label">思考输出</label>
+                        <select id="editThinkingMode" class="form-select">
+                            <option value="omit">不传</option>
+                            <option value="off">关闭</option>
+                            <option value="on">开启</option>
+                        </select>
+                        <div class="form-help-text">对支持该参数的兼容模式模型生效。`不传` 适合严格的 OpenAI 兼容端点，`关闭` 会显式发送 false，`开启` 会显式发送 true。</div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button id="cancelEdit" class="btn btn-outline">取消</button>
+                <button id="saveEdit" class="btn btn-primary">保存</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 导出配置模态框 -->
+    <div class="modal-overlay" id="exportModalOverlay">
+        <div class="modal import-preview-modal">
+            <div class="modal-header">
+                <h2>导出配置</h2>
+                <button id="closeExportModal" class="close-btn" type="button" aria-label="关闭导出配置">
+                    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="option-block">
+                    <div class="option-title">导出范围</div>
+                    <label class="radio-option"><input type="radio" name="exportScope" value="all" checked>全部配置</label>
+                    <label class="radio-option"><input type="radio" name="exportScope" value="enabled">只导出已启用配置</label>
+                    <label class="radio-option"><input type="radio" name="exportScope" value="filtered">导出当前搜索/筛选结果</label>
+                    <label class="radio-option"><input type="radio" name="exportScope" value="type">按类型导出</label>
+                    <select id="exportTypeSelect" class="form-select export-type-select" disabled>
+                        <option value="">请选择类型</option>
+                    </select>
+                </div>
+                <div class="option-block">
+                    <div class="option-title">文件格式</div>
+                    <label class="radio-option"><input type="radio" name="exportFormat" value="encrypted" checked>加密 JSON</label>
+                    <label class="radio-option"><input type="radio" name="exportFormat" value="plain">明文 JSON</label>
+                </div>
+                <div id="exportPasswordFields" class="option-block">
+                    <label class="form-label" for="exportPassword">加密密码</label>
+                    <div class="secret-input-group">
+                        <input type="password" id="exportPassword" class="form-input" autocomplete="off">
+                        <button id="toggleExportPassword" class="secret-toggle-btn" type="button">显示</button>
+                    </div>
+                    <label class="form-label export-confirm-label" for="exportPasswordConfirm">确认密码</label>
+                    <input type="password" id="exportPasswordConfirm" class="form-input" autocomplete="off">
+                </div>
+                <div id="exportPreviewText" class="import-preview-warning">将导出 0 个配置。</div>
+            </div>
+            <div class="modal-footer">
+                <button id="cancelExport" class="btn btn-outline" type="button">取消</button>
+                <button id="confirmExport" class="btn btn-primary" type="button">导出</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 导入解密模态框 -->
+    <div class="modal-overlay" id="importPasswordOverlay">
+        <div class="modal">
+            <div class="modal-header">
+                <h2>解密配置文件</h2>
+                <button id="closeImportPassword" class="close-btn" type="button" aria-label="关闭解密">
+                    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </button>
+            </div>
+            <div class="modal-body">
+                <p class="form-help-text">这个文件不是明文 JSON，请输入导出时设置的密码。</p>
+                <label class="form-label" for="importPassword">解密密码</label>
+                <div class="secret-input-group">
+                    <input type="password" id="importPassword" class="form-input" autocomplete="off">
+                    <button id="toggleImportPassword" class="secret-toggle-btn" type="button">显示</button>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button id="cancelImportPassword" class="btn btn-outline" type="button">取消</button>
+                <button id="confirmImportPassword" class="btn btn-primary" type="button">解密预览</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 导入预览模态框 -->
+    <div class="modal-overlay" id="importPreviewOverlay">
+        <div class="modal import-preview-modal" id="importPreviewModal">
+            <div class="modal-header">
+                <h2>导入配置预览</h2>
+                <button id="closeImportPreview" class="close-btn" type="button" aria-label="关闭导入预览">
+                    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="option-block">
+                    <div class="option-title">导入模式</div>
+                    <label class="radio-option"><input type="radio" name="importMode" value="replace" checked>覆盖全部</label>
+                    <label class="radio-option"><input type="radio" name="importMode" value="append">追加导入，同名自动重命名</label>
+                    <label class="radio-option"><input type="radio" name="importMode" value="merge">智能合并，同名覆盖</label>
+                </div>
+                <div id="importPreviewSummary" class="import-preview-summary"></div>
+                <div id="importPreviewList" class="import-preview-list"></div>
+            </div>
+            <div class="modal-footer">
+                <button id="cancelImportPreview" class="btn btn-outline" type="button">取消</button>
+                <button id="confirmImportPreview" class="btn btn-primary" type="button">确认导入</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 彩蛋纸条 -->
+    <button id="specialThanksToast" class="special-thanks-toast" type="button" aria-live="polite">
+        今天也在认真帮你找答案。
+    </button>
+
+    <!-- 贡献者星图 -->
+    <div id="specialThanksModalOverlay" class="star-map-overlay" aria-hidden="true">
+        <div id="specialThanksModal" class="star-map-modal" role="dialog" aria-modal="true" aria-label="贡献者星图">
+            <canvas id="star-map-canvas"></canvas>
+            <button id="closeSpecialThanks" class="star-map-close" type="button" aria-label="关闭">×</button>
+            <div class="star-map-content">
+                <div class="star-name star-name-one">虎哥</div>
+                <div class="star-name star-name-two">冬哥</div>
+                <div class="star-name star-name-three">国荣</div>
+                <div class="star-name star-name-four">国甫</div>
+                <div class="star-map-title">感谢每一位把工具打磨得更好的人</div>
+                <div class="star-map-scroll">
+                    虎哥 / 冬哥 / 国荣 / 国甫 / 以及所有使用和反馈的人
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script type="text/javascript" src="../js/sm4.js"></script>
+    <script src="../js/options.js"></script>
+</body>
+
+</html>

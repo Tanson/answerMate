@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI模型选择</title>
+    <link rel="stylesheet" href="../css/popup.css">
+</head>
+
+<body>
+    <div class="container">
+        <!-- 头部区域 -->
+        <header class="header">
+            <div class="logo">
+                <svg width="40" height="40" viewBox="0 0 50 50" xmlns="http://www.w3.org/2000/svg">
+                    <!-- 灯泡底座 -->
+                    <rect x="20" y="40" width="10" height="4" rx="1" fill="#455a64" stroke="#263238" stroke-width="0.8"/>
+                    <path d="M20 40 Q25 38 30 40" fill="none" stroke="#37474f" stroke-width="1.5"/>
+                    
+                    <!-- 灯泡玻璃罩 -->
+                    <g id="bulb">
+                        <path d="M15 20 Q25 5 35 20 Q25 40 15 20 Z" 
+                              fill="#fffacd" 
+                              stroke="#ffca28" 
+                              stroke-width="1.2"
+                              filter="url(#shadow)"/>
+                        
+                        <!-- 灯丝 -->
+                        <path d="M22 22 Q25 18 28 22" fill="none" stroke="#ff6d00" stroke-width="2" stroke-linecap="round"/>
+                        <path d="M22 26 Q25 30 28 26" fill="none" stroke="#ff6d00" stroke-width="2" stroke-linecap="round"/>
+                    </g>
+                    
+                    <!-- 发光效果 -->
+                    <filter id="shadow">
+                        <feDropShadow dx="0" dy="0" stdDeviation="3" flood-color="#ffeb3b" flood-opacity="0.8"/>
+                    </filter>
+                </svg>
+            </div>
+            <h1 class="title">AI模型选择</h1>
+        </header>
+
+        <section class="status-panel">
+            <div id="enabledSummary" class="enabled-summary">已启用 0 个模型 · 自动选中开 · 答案标记开</div>
+            <div id="riskNotice" class="risk-notice" hidden></div>
+        </section>
+
+        <main class="dashboard">
+            <!-- 模型列表区域 -->
+            <section class="models-section panel">
+                <div class="section-title-row">
+                    <h2 class="section-title">可用模型</h2>
+                    <span id="modelsCount" class="models-count">0 / 0</span>
+                </div>
+                <div id="configList" class="models-list"></div>
+            </section>
+
+            <section class="controls-column">
+                <!-- 设置选项区域 -->
+                <section class="settings-section panel">
+                    <div class="section-title-row">
+                        <h2 class="section-title">功能开关</h2>
+                    </div>
+                    <div class="toggle-grid">
+                        <label class="option-toggle" title="自动点击页面中的答案选项">
+                            <input type="checkbox" id="enableAutoSelect">
+                            <span class="toggle-icon" aria-hidden="true">✓</span>
+                            <span class="toggle-label">自动选中</span>
+                        </label>
+                        <label class="option-toggle" title="给答案选项加边框标记">
+                            <input type="checkbox" id="enableAnswerHighlight">
+                            <span class="toggle-icon" aria-hidden="true">□</span>
+                            <span class="toggle-label">答案标记</span>
+                        </label>
+                        <label class="option-toggle" title="将回答自动复制到剪贴板">
+                            <input type="checkbox" id="copyClipboard">
+                            <span class="toggle-icon" aria-hidden="true">⧉</span>
+                            <span class="toggle-label">自动复制</span>
+                        </label>
+                        <label class="option-toggle" title="语音朗读模型返回的答案">
+                            <input type="checkbox" id="enableTTS">
+                            <span class="toggle-icon" aria-hidden="true">♪</span>
+                            <span class="toggle-label">语音朗读</span>
+                        </label>
+                        <label class="option-toggle option-toggle-wide" title="回答浮层跟随鼠标位置显示">
+                            <input type="checkbox" id="enableMouseFollow">
+                            <span class="toggle-icon" aria-hidden="true">↗</span>
+                            <span class="toggle-label">鼠标跟随浮层</span>
+                        </label>
+                    </div>
+                </section>
+
+                <!-- 透明度调节区域 -->
+                <section class="opacity-section panel">
+                    <div class="section-title-row">
+                        <h2 class="section-title">显示与标记</h2>
+                    </div>
+                    <div class="opacity-control">
+                        <span class="opacity-label">透明度</span>
+                        <div class="opacity-slider-container">
+                            <input type="range" id="opacitySlider" min="0" max="100" value="50" class="slider">
+                            <span class="opacity-value" id="opacityValue">50%</span>
+                        </div>
+                    </div>
+                    <div class="highlight-config">
+                        <div class="highlight-config-row">
+                            <label class="highlight-config-label" for="highlightBorderColor">边框颜色</label>
+                            <input type="color" id="highlightBorderColor" class="color-picker" value="#dcdcdc">
+                        </div>
+                        <div class="highlight-config-row">
+                            <label class="highlight-config-label" for="highlightBorderWidth">边框粗细</label>
+                            <input type="number" id="highlightBorderWidth" class="number-input" min="0.5" max="6" step="0.5" value="1">
+                        </div>
+                        <div class="highlight-preview">
+                            <span class="highlight-preview-label">预览</span>
+                            <div id="highlightPreviewBox" class="highlight-preview-box">
+                                <span>正确答案示例</span>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </section>
+        </main>
+
+        <!-- 底部区域 -->
+        <footer class="footer">
+            <span class="version" id="appVersion">版本 --</span>
+            <button id="settingsButton" class="settings-btn">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24">
+                    <path d="M12 15.5A3.5 3.5 0 0 1 8.5 12A3.5 3.5 0 0 1 12 8.5A3.5 3.5 0 0 1 15.5 12A3.5 3.5 0 0 1 12 15.5M19.43 12.97C19.47 12.65 19.5 12.33 19.5 12C19.5 11.67 19.47 11.34 19.43 11L21.54 9.37C21.73 9.22 21.78 8.95 21.66 8.73L19.66 5.27C19.54 5.05 19.27 4.96 19.05 5.05L16.56 6.05C16.04 5.66 15.5 5.32 14.87 5.07L14.5 2.42C14.46 2.18 14.25 2 14 2H10C9.75 2 9.54 2.18 9.5 2.42L9.13 5.07C8.5 5.32 7.96 5.66 7.44 6.05L4.95 5.05C4.73 4.96 4.46 5.05 4.34 5.27L2.34 8.73C2.21 8.95 2.27 9.22 2.46 9.37L4.57 11C4.53 11.34 4.5 11.67 4.5 12C4.5 12.33 4.53 12.65 4.57 12.97L2.46 14.63C2.27 14.78 2.21 15.05 2.34 15.27L4.34 18.73C4.46 18.95 4.73 19.03 4.95 18.95L7.44 17.94C7.96 18.34 8.5 18.68 9.13 18.93L9.5 21.58C9.54 21.82 9.75 22 10 22H14C14.25 22 14.46 21.82 14.5 21.58L14.87 18.93C15.5 18.67 16.04 18.34 16.56 17.94L19.05 18.95C19.27 19.03 19.54 18.95 19.66 18.73L21.66 15.27C21.78 15.05 21.73 14.78 21.54 14.63L19.43 12.97Z"/>
+                </svg>
+            </button>
+        </footer>
+    </div>
+
+    <script src="../js/popup.js"></script>
+</body>
+
+</html>

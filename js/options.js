@@ -1478,12 +1478,13 @@ document.addEventListener("DOMContentLoaded", function () {
         const isKaoShiBao = config.type === 'KaoShiBao';
         const testText = isKaoShiBao ? TEST_QUESTION : TEST_PROMPT;
 
-        showNotification(`正在测试 ${config.name || '配置'}，发送真实题目验证...`, 'info');
+        const configLabel = config.name || '未命名配置';
+        showNotification(`<b>[${configLabel}]</b> 正在测试，发送真实题目验证...`, 'info');
         const answerDivId = `test-${Date.now()}`;
         let settled = false;
         const timeoutId = setTimeout(function() {
             settled = true;
-            showNotification('测试超时，请检查网络、URL、Key 或模型名', 'error');
+            showNotification(`<b>[${configLabel}]</b> 测试超时，请检查网络、URL、Key 或模型名`, 'error');
         }, 45000);
 
         chrome.runtime.sendMessage({
@@ -1499,13 +1500,13 @@ document.addEventListener("DOMContentLoaded", function () {
             settled = true;
             clearTimeout(timeoutId);
             if (chrome.runtime.lastError) {
-                showNotification(`测试失败：${chrome.runtime.lastError.message}`, 'error');
+                showNotification(`<b>[${configLabel}]</b> 测试失败：${escapeHtml(chrome.runtime.lastError.message)}`, 'error');
                 return;
             }
 
             const answer = response && response.answer ? String(response.answer) : '';
             if (!answer) {
-                showNotification('测试失败：未返回有效响应', 'error');
+                showNotification(`<b>[${configLabel}]</b> 测试失败：未返回有效响应`, 'error');
                 return;
             }
 
@@ -1513,26 +1514,26 @@ document.addEventListener("DOMContentLoaded", function () {
             const cleanHtml = answer.replace(/<br>/gi, '<br>').replace(/<[^>]+>/g, '').trim();
 
             if (/^错误[:：]/.test(answer) || /unauthorized|forbidden|invalid.*key|auth.*fail|api错误|api请求失败|HTTP \d{3}|请求超时|失败/i.test(answer)) {
-                showNotification(`测试失败：${escapeHtml(cleanHtml)}`, 'error', 6000);
+                showNotification(`<b>[${configLabel}]</b> 测试失败：${escapeHtml(cleanHtml)}`, 'error', 6000);
                 return;
             }
 
             if (isKaoShiBao) {
                 if (/未查询到相关题目|未获取到/.test(answer)) {
-                    showNotification('测试失败：考试宝未查到该题目，请确认已登录考试宝', 'error', 5000);
+                    showNotification(`<b>[${configLabel}]</b> 测试失败：考试宝未查到该题目，请确认已登录考试宝`, 'error', 5000);
                     return;
                 }
-                showNotification(`测试通过！考试宝搜索结果：<br>${escapeHtml(cleanHtml)}`, 'success', 6000);
+                showNotification(`<b>[${configLabel}]</b> 测试通过！考试宝搜索结果：<br>${escapeHtml(cleanHtml)}`, 'success', 6000);
                 return;
             }
 
             const strippedAnswer = cleanHtml.replace(/<br>/gi, '').replace(/\s+/g, '');
             if (strippedAnswer.length < 3) {
-                showNotification(`测试失败：返回过短（${answer.length} 字符）<br>${escapeHtml(cleanHtml)}`, 'error', 6000);
+                showNotification(`<b>[${configLabel}]</b> 测试失败：返回过短（${answer.length} 字符）<br>${escapeHtml(cleanHtml)}`, 'error', 6000);
                 return;
             }
 
-            showNotification(`测试通过！模型回答：<br>${escapeHtml(cleanHtml)}`, 'success', 6000);
+            showNotification(`<b>[${configLabel}]</b> 测试通过！模型回答：<br>${escapeHtml(cleanHtml)}`, 'success', 6000);
         });
     }
 

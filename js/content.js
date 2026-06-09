@@ -50,6 +50,7 @@ document.addEventListener("dblclick", (event) => {
     if (event.ctrlKey || event.metaKey) {
         chrome.runtime.sendMessage({ action: "executeScript", file: "js/enableA.js" }, () => {});
         chrome.runtime.sendMessage({ action: "executeScript", file: "js/enable.js" }, () => {});
+        chrome.runtime.sendMessage({ action: "executeScript", file: "js/fullscreen.js" }, () => {});
         return;
     }
 
@@ -644,6 +645,8 @@ function directApplyAnswers(structuredAnswer) {
     const scopeRoot = selectedScopeElement || (currentSelectionSnapshot && currentSelectionSnapshot.scopeElement) || document.body;
     const selectionRect = selectedRangeRect || (currentSelectionSnapshot && currentSelectionSnapshot.rect) || null;
 
+    // 阶段1：查找所有选项元素并高亮
+    const collectedAnswers = [];
     structuredAnswer.answers.forEach((answer) => {
         const normalizedAnswer = String(answer || "").trim().toUpperCase();
         if (!normalizedAnswer) {
@@ -655,7 +658,7 @@ function directApplyAnswers(structuredAnswer) {
             optionElement = findClosestOptionElement(document.body, normalizedAnswer, structuredAnswer.type, selectionRect);
         }
         if (!optionElement) {
-            console.log("[aitalk] 未找到元素:", normalizedAnswer, "scopeRoot=", scopeRoot.tagName, "bodySearch=true");
+            console.log("[aitalk] 未找到元素:", normalizedAnswer);
             return;
         }
         console.log("[aitalk] 找到元素:", normalizedAnswer, optionElement.tagName, "class=", optionElement.className, "text=", optionElement.innerText.substring(0, 30));
@@ -664,25 +667,86 @@ function directApplyAnswers(structuredAnswer) {
             addAnswerHighlightOverlay(optionElement);
         }
 
-        if (shouldAutoSelect) {
-            const control = findSelectableControlV2(optionElement, 3, answerMode);
-            if (control && !control.disabled) {
-                if (!control.checked) {
-                    if (typeof control.click === "function") {
-                        control.click();
-                    } else {
-                        control.checked = true;
-                        dispatchControlEventsV2(control);
-                    }
-                }
-                return;
-            }
+        collectedAnswers.push({ normalizedAnswer, optionElement });
+    });
 
-            const customControl = findCustomSelectableControlV2(optionElement, 3, answerMode);
-            if (customControl) {
-                activateCustomControlV2(customControl);
-            }
+    if (!shouldAutoSelect) return;
+
+    // 阶段2：收集所有可控控件
+    const controlsToActivate = [];
+    collectedAnswers.forEach(({ normalizedAnswer, optionElement }) => {
+        const control = findSelectableControlV2(optionElement, 3, answerMode);
+        if (control && !control.disabled && !control.checked) {
+            controlsToActivate.push({ normalizedAnswer, control, type: "native" });
+            console.log("[aitalk] 收集控件:", normalizedAnswer, control.tagName, "type=", control.type);
+            return;
         }
+
+        if (control && control.checked) {
+            console.log("[aitalk] 已勾选:", normalizedAnswer);
+            return;
+        }
+
+        const customControl = findCustomSelectableControlV2(optionElement, 3, answerMode);
+        if (customControl) {
+            controlsToActivate.push({ normalizedAnswer, control: customControl, type: "custom" });
+            console.log("[aitalk] 收集自定义控件:", normalizedAnswer, "role=", customControl.getAttribute("role"));
+        } else {
+            console.log("[aitalk] 未找到控件:", normalizedAnswer, "optionEl=", optionElement.tagName, "mode=", answerMode);
+        }
+    });
+
+    if (controlsToActivate.length === 0) {
+        console.log("[aitalk] 没有可激活的控件");
+        return;
+    }
+
+    // 阶段3（多选）：先批量设置 checked，再统一派发事件，防止页面框架逐个重新渲染冲掉前面的勾选
+    if (answerMode === "multiple") {
+        const nativeSetter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "checked") &&
+            Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "checked").set;
+
+        // 批量设置所有控件状态
+        controlsToActivate.forEach(({ control, type }) => {
+            if (type === "custom") {
+                control.setAttribute("aria-checked", "true");
+                console.log("[aitalk] 多选 aria-checked=true:", control.getAttribute("data-value") || control.innerText.substring(0, 20));
+            } else if (control.type === "checkbox") {
+                if (nativeSetter) {
+                    nativeSetter.call(control, true);
+                } else {
+                    control.checked = true;
+                }
+            }
+        });
+
+        // 统一派发事件（此时所有选项状态已就绪，框架收到的是一次完整的多选变更）
+        controlsToActivate.forEach(({ control, type }) => {
+            if (type === "custom") {
+                // 不调用 click()，直接派发事件避免触发页面互斥逻辑
+                ["mousedown", "mouseup", "click"].forEach((eventName) => {
+                    control.dispatchEvent(new MouseEvent(eventName, { bubbles: true, cancelable: true, view: window }));
+                });
+            } else if (control.type === "checkbox") {
+                ["input", "change"].forEach((eventName) => {
+                    control.dispatchEvent(new Event(eventName, { bubbles: true }));
+                });
+            }
+        });
+        return;
+    }
+
+    // 单选题：逐个激活
+    controlsToActivate.forEach(({ control, normalizedAnswer, type }) => {
+        if (type === "custom") {
+            activateCustomControlV2(control);
+        } else if (typeof control.click === "function") {
+            control.click();
+        } else {
+            control.checked = true;
+            dispatchControlEventsV2(control);
+        }
+        console.log("[aitalk] 单选已激活:", normalizedAnswer);
     });
 }
 

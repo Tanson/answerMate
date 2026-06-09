@@ -1514,26 +1514,26 @@ document.addEventListener("DOMContentLoaded", function () {
             const cleanHtml = answer.replace(/<br>/gi, '<br>').replace(/<[^>]+>/g, '').trim();
 
             if (/^错误[:：]/.test(answer) || /unauthorized|forbidden|invalid.*key|auth.*fail|api错误|api请求失败|HTTP \d{3}|请求超时|失败/i.test(answer)) {
-                showNotification(`<b>[${configLabel}]</b> 测试失败：${escapeHtml(cleanHtml)}`, 'error', 6000);
+                showNotification(`<b>[${configLabel}]</b> 测试失败：${escapeHtml(cleanHtml)}`, 'error', 11000);
                 return;
             }
 
             if (isKaoShiBao) {
                 if (/未查询到相关题目|未获取到/.test(answer)) {
-                    showNotification(`<b>[${configLabel}]</b> 测试失败：考试宝未查到该题目，请确认已登录考试宝`, 'error', 5000);
+                    showNotification(`<b>[${configLabel}]</b> 测试失败：考试宝未查到该题目，请确认已登录考试宝`, 'error', 10000);
                     return;
                 }
-                showNotification(`<b>[${configLabel}]</b> 测试通过！考试宝搜索结果：<br>${escapeHtml(cleanHtml)}`, 'success', 6000);
+                showNotification(`<b>[${configLabel}]</b> 测试通过！考试宝搜索结果：<br>${escapeHtml(cleanHtml)}`, 'success', 11000);
                 return;
             }
 
             const strippedAnswer = cleanHtml.replace(/<br>/gi, '').replace(/\s+/g, '');
             if (strippedAnswer.length < 3) {
-                showNotification(`<b>[${configLabel}]</b> 测试失败：返回过短（${answer.length} 字符）<br>${escapeHtml(cleanHtml)}`, 'error', 6000);
+                showNotification(`<b>[${configLabel}]</b> 测试失败：返回过短（${answer.length} 字符）<br>${escapeHtml(cleanHtml)}`, 'error', 11000);
                 return;
             }
 
-            showNotification(`<b>[${configLabel}]</b> 测试通过！模型回答：<br>${escapeHtml(cleanHtml)}`, 'success', 6000);
+            showNotification(`<b>[${configLabel}]</b> 测试通过！模型回答：<br>${escapeHtml(cleanHtml)}`, 'success', 11000);
         });
     }
 
@@ -1677,17 +1677,40 @@ document.addEventListener("DOMContentLoaded", function () {
         }
     }
     
+    // 通知栈管理：从上往下排列，新通知出现在已有通知下方
+    const notificationStack = [];
+    const NOTIFICATION_GAP = 8;
+    const NOTIFICATION_TOP = 20;
+
+    function repositionNotifications() {
+        let offset = NOTIFICATION_TOP;
+        notificationStack.forEach((item) => {
+            if (!item.el.parentNode) return;
+            item.el.style.top = offset + 'px';
+            item.el.style.transition = 'top 0.25s ease';
+            offset += item.el.offsetHeight + NOTIFICATION_GAP;
+        });
+    }
+
+    function removeFromStack(el) {
+        const idx = notificationStack.findIndex((item) => item.el === el);
+        if (idx === -1) return;
+        notificationStack.splice(idx, 1);
+        repositionNotifications();
+    }
+
     // 显示通知
-    function showNotification(message, type = 'success', duration = 3000) {
-        // 创建通知元素
+    function showNotification(message, type = 'success', duration = 8000) {
         const notification = document.createElement('div');
         notification.className = 'notification';
         notification.innerHTML = message;
         const bgColor = type === 'error' ? 'var(--danger-color)' : type === 'info' ? 'var(--info-color, #3b82f6)' : 'var(--success-color)';
+
+        // 先设置初始样式（不含 top，先测量高度）
         notification.style.cssText = `
             position: fixed;
-            top: 20px;
             right: 20px;
+            opacity: 0;
             max-width: 480px;
             min-width: 200px;
             background-color: ${bgColor};
@@ -1698,42 +1721,51 @@ document.addEventListener("DOMContentLoaded", function () {
             z-index: 2000;
             word-break: break-word;
             line-height: 1.5;
-            animation: slideIn 0.3s ease;
             font-size: 0.875rem;
         `;
-        
-        // 添加动画
+
         document.head.insertAdjacentHTML('beforeend', `
             <style>
                 @keyframes fadeOut {
-                    from {
-                        opacity: 1;
-                    }
-                    to {
-                        opacity: 0;
-                    }
-                }
-                @keyframes slideIn {
-                    from {
-                        transform: translateX(100%);
-                        opacity: 0;
-                    }
-                    to {
-                        transform: translateX(0);
-                        opacity: 1;
-                    }
+                    from { opacity: 1; transform: translateX(0); }
+                    to { opacity: 0; transform: translateX(100%); }
                 }
             </style>
         `);
-        
-        // 添加到文档
+
         document.body.appendChild(notification);
-        
+
+        // 通知已加入 DOM，可获取实际高度
+        const stackItem = { el: notification };
+        notificationStack.push(stackItem);
+
+        // 计算位置：上一通知底部 + gap - 从下方滑入
+        let newTop = NOTIFICATION_TOP;
+        for (let i = 0; i < notificationStack.length - 1; i++) {
+            const prev = notificationStack[i];
+            if (prev.el.parentNode) {
+                newTop += prev.el.offsetHeight + NOTIFICATION_GAP;
+            }
+        }
+        notification.style.top = newTop + 'px';
+        notification.style.transform = 'translateX(100%)';
+        notification.style.transition = 'opacity 0.3s ease, transform 0.3s ease, top 0.25s ease';
+
+        // 触发入场动画
+        requestAnimationFrame(() => {
+            notification.style.opacity = '1';
+            notification.style.transform = 'translateX(0)';
+        });
+
         // 指定时长后移除
         setTimeout(() => {
-            notification.style.animation = 'fadeOut 0.3s ease';
+            notification.style.opacity = '0';
+            notification.style.transform = 'translateX(100%)';
             setTimeout(() => {
-                document.body.removeChild(notification);
+                if (notification.parentNode) {
+                    document.body.removeChild(notification);
+                }
+                removeFromStack(notification);
             }, 300);
         }, duration);
     }

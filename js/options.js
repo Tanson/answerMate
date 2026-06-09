@@ -1454,6 +1454,10 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     }
 
+    const TEST_QUESTION = '鼻翼耳平线与眶耳平面的交角约为（）\n\nA、15°\nB、60°\nC、70°\nD、80°\nE、140°';
+
+    const TEST_PROMPT = `请回答以下选择题，只需要给出正确答案的字母和简要解释：\n\n${TEST_QUESTION}`;
+
     function testConfig(index) {
         const config = allConfigs[index];
         if (!config) {
@@ -1471,18 +1475,21 @@ document.addEventListener("DOMContentLoaded", function () {
             return;
         }
 
-        showNotification(`正在测试 ${config.name || '配置'}...`);
+        const isKaoShiBao = config.type === 'KaoShiBao';
+        const testText = isKaoShiBao ? TEST_QUESTION : TEST_PROMPT;
+
+        showNotification(`正在测试 ${config.name || '配置'}，发送真实题目验证...`, 'info');
         const answerDivId = `test-${Date.now()}`;
         let settled = false;
         const timeoutId = setTimeout(function() {
             settled = true;
-            showNotification('测试超时，请检查网络、URL、Key 或模型名');
-        }, 30000);
+            showNotification('测试超时，请检查网络、URL、Key 或模型名', 'error');
+        }, 45000);
 
         chrome.runtime.sendMessage({
             action: config.type,
-            text: '请只回复 OK',
-            selectText: '连接测试',
+            text: testText,
+            selectText: TEST_QUESTION,
             config,
             answerDivId
         }, function(response) {
@@ -1492,17 +1499,40 @@ document.addEventListener("DOMContentLoaded", function () {
             settled = true;
             clearTimeout(timeoutId);
             if (chrome.runtime.lastError) {
-                showNotification(`测试失败：${chrome.runtime.lastError.message}`);
+                showNotification(`测试失败：${chrome.runtime.lastError.message}`, 'error');
                 return;
             }
 
             const answer = response && response.answer ? String(response.answer) : '';
-            if (!answer || /^错误[:：]/.test(answer) || /失败|error|unauthorized|forbidden/i.test(answer)) {
-                showNotification(`测试失败：${truncateText(answer || '未返回有效响应', 60)}`);
+            if (!answer) {
+                showNotification('测试失败：未返回有效响应', 'error');
                 return;
             }
 
-            showNotification('测试通过，接口已返回响应！');
+            // 清理 HTML 标签，以便在通知中显示纯文本
+            const cleanHtml = answer.replace(/<br>/gi, '<br>').replace(/<[^>]+>/g, '').trim();
+
+            if (/^错误[:：]/.test(answer) || /unauthorized|forbidden|invalid.*key|auth.*fail|api错误|api请求失败|HTTP \d{3}|请求超时|失败/i.test(answer)) {
+                showNotification(`测试失败：${escapeHtml(cleanHtml)}`, 'error', 6000);
+                return;
+            }
+
+            if (isKaoShiBao) {
+                if (/未查询到相关题目|未获取到/.test(answer)) {
+                    showNotification('测试失败：考试宝未查到该题目，请确认已登录考试宝', 'error', 5000);
+                    return;
+                }
+                showNotification(`测试通过！考试宝搜索结果：<br>${escapeHtml(cleanHtml)}`, 'success', 6000);
+                return;
+            }
+
+            const strippedAnswer = cleanHtml.replace(/<br>/gi, '').replace(/\s+/g, '');
+            if (strippedAnswer.length < 3) {
+                showNotification(`测试失败：返回过短（${answer.length} 字符）<br>${escapeHtml(cleanHtml)}`, 'error', 6000);
+                return;
+            }
+
+            showNotification(`测试通过！模型回答：<br>${escapeHtml(cleanHtml)}`, 'success', 6000);
         });
     }
 
@@ -1647,21 +1677,26 @@ document.addEventListener("DOMContentLoaded", function () {
     }
     
     // 显示通知
-    function showNotification(message) {
+    function showNotification(message, type = 'success', duration = 3000) {
         // 创建通知元素
         const notification = document.createElement('div');
         notification.className = 'notification';
-        notification.textContent = message;
+        notification.innerHTML = message;
+        const bgColor = type === 'error' ? 'var(--danger-color)' : type === 'info' ? 'var(--info-color, #3b82f6)' : 'var(--success-color)';
         notification.style.cssText = `
             position: fixed;
             top: 20px;
             right: 20px;
-            background-color: var(--success-color);
+            max-width: 480px;
+            min-width: 200px;
+            background-color: ${bgColor};
             color: white;
             padding: 12px 20px;
             border-radius: var(--radius-md);
             box-shadow: var(--shadow-md);
             z-index: 2000;
+            word-break: break-word;
+            line-height: 1.5;
             animation: slideIn 0.3s ease;
             font-size: 0.875rem;
         `;
@@ -1669,6 +1704,14 @@ document.addEventListener("DOMContentLoaded", function () {
         // 添加动画
         document.head.insertAdjacentHTML('beforeend', `
             <style>
+                @keyframes fadeOut {
+                    from {
+                        opacity: 1;
+                    }
+                    to {
+                        opacity: 0;
+                    }
+                }
                 @keyframes slideIn {
                     from {
                         transform: translateX(100%);
@@ -1679,27 +1722,19 @@ document.addEventListener("DOMContentLoaded", function () {
                         opacity: 1;
                     }
                 }
-                @keyframes fadeOut {
-                    from {
-                        opacity: 1;
-                    }
-                    to {
-                        opacity: 0;
-                    }
-                }
             </style>
         `);
         
         // 添加到文档
         document.body.appendChild(notification);
         
-        // 3秒后移除
+        // 指定时长后移除
         setTimeout(() => {
             notification.style.animation = 'fadeOut 0.3s ease';
             setTimeout(() => {
                 document.body.removeChild(notification);
             }, 300);
-        }, 3000);
+        }, duration);
     }
 
     // 初始化加载配置

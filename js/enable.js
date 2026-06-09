@@ -1,4 +1,4 @@
-// 插件代码：解除网页的复制、右键、拖拽等限制
+// 插件代码：解除网页的复制、右键、拖拽、全屏锁定等限制
 (function () {
     'use strict';
 
@@ -57,6 +57,44 @@
     document.addEventListener("DOMContentLoaded", () => {
         removeRestrictions();
         console.log("Content restrictions removed.");
+        disableFullscreenDetection();
     });
+
+    // 解除全屏锁定：劫持 Fullscreen API，阻止页面检测退出全屏
+    function disableFullscreenDetection() {
+        // 1. 让 requestFullscreen 静默成功，不触发副作用
+        Element.prototype.requestFullscreen = function(options) {
+            return Promise.resolve();
+        };
+
+        // 2. 阻断页面监听 fullscreenchange — 页面收不到退出全屏通知
+        document.addEventListener('fullscreenchange', (e) => {
+            e.stopImmediatePropagation();
+        }, true);
+
+        // 3. 伪造 fullscreenElement，让页面以为始终全屏
+        const fakeEl = document.documentElement;
+        ['fullscreenElement', 'webkitFullscreenElement', 'mozFullScreenElement', 'msFullscreenElement'].forEach((prop) => {
+            try {
+                Object.defineProperty(document, prop, {
+                    get: () => fakeEl,
+                    configurable: true
+                });
+            } catch (_) {}
+        });
+
+        // 4. 清除定期检测全屏状态的 interval
+        const originalInterval = window.setInterval;
+        const suspicious = [];
+        window.setInterval = function(fn, delay, ...args) {
+            const id = originalInterval.call(window, fn, delay, ...args);
+            const fnStr = String(fn);
+            if (/fullscreen|exitFullscreen|webkitExitFullscreen|mozCancelFullScreen/i.test(fnStr) && delay && delay < 3000) {
+                suspicious.push(id);
+            }
+            return id;
+        };
+        setTimeout(() => suspicious.forEach((id) => clearInterval(id)), 500);
+    }
 
 })();
